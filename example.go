@@ -3,18 +3,21 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	_ "github.com/mattn/go-sqlite3"
 	"go.uber.org/dig"
 )
 
+// Config is
 type Config struct {
 	Enabled      bool
 	DatabasePath string
 	Port         string
 }
 
+// NewConfig is
 func NewConfig() *Config {
 	return &Config{
 		Enabled:      true,
@@ -23,35 +26,39 @@ func NewConfig() *Config {
 	}
 }
 
+// Person is ...
 type Person struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
-	Age  int    `json:"age"`
+	Id                 int      `json:"id"`
+	UsedMachines       []string `json:"usedMachines"`
+	TotalMachinesCount int      `json:"totalMachinesCount"`
 }
 
+// PersonRepository is ...
 type PersonRepository struct {
 	database *sql.DB
 }
 
+// FindAll is ..
 func (repository *PersonRepository) FindAll() []*Person {
-	rows, _ := repository.database.Query(`SELECT id, name, age FROM people;`)
+	// select machine.id,usedMachines,totalMachinesCount  from machine  LEFT JOIN loadbalance  on loadbalance_id=loadbalance.id;
+	rows, _ := repository.database.Query(`select machine.id,usedMachines,totalMachinesCount  from machine  LEFT JOIN loadbalance  on loadbalance_id=loadbalance.id;`)
 	defer rows.Close()
 
 	people := []*Person{}
 
 	for rows.Next() {
 		var (
-			id   int
-			name string
-			age  int
+			id                 int
+			usedMachines       string
+			totalMachinesCount int
 		)
-
-		rows.Scan(&id, &name, &age)
-
+		rows.Scan(&id, &usedMachines, &totalMachinesCount)
+		fmt.Println(usedMachines)
+		//fmt.Println(strings.Split(usedMachines, ","))
 		people = append(people, &Person{
-			Id:   id,
-			Name: name,
-			Age:  age,
+			Id:                 id,
+			UsedMachines:       []string{usedMachines},
+			TotalMachinesCount: totalMachinesCount,
 		})
 	}
 
