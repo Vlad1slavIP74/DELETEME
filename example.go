@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	_ "github.com/mattn/go-sqlite3"
 	"go.uber.org/dig"
@@ -38,10 +39,31 @@ type PersonRepository struct {
 	database *sql.DB
 }
 
+func UpdatePersonRepository(id int, repository *PersonRepository) int {
+	var isWork int
+	sqlStatement := `SELECT isWork FROM machine WHERE id=$1;`
+	fmt.Println("sqlStatement", sqlStatement)
+	row := repository.database.QueryRow(sqlStatement, id)
+	err := row.Scan(&isWork)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			fmt.Println("Zero rows found")
+		} else {
+			panic(err)
+		}
+	}
+	return isWork
+}
+
 // FindAll is ..
 func (repository *PersonRepository) FindAll() []*Person {
+	var arrUsedMachines []string
 	// select machine.id,usedMachines,totalMachinesCount  from machine  LEFT JOIN loadbalance  on loadbalance_id=loadbalance.id;
-	rows, _ := repository.database.Query(`select machine.id,usedMachines,totalMachinesCount  from machine  LEFT JOIN loadbalance  on loadbalance_id=loadbalance.id;`)
+	rows, err := repository.database.Query(`select machine.id,usedMachines,totalMachinesCount  from machine  LEFT JOIN loadbalance  on loadbalance_id=loadbalance.id;`)
+	if err != nil {
+		panic(err)
+	}
+
 	defer rows.Close()
 
 	people := []*Person{}
@@ -52,16 +74,25 @@ func (repository *PersonRepository) FindAll() []*Person {
 			usedMachines       string
 			totalMachinesCount int
 		)
-		rows.Scan(&id, &usedMachines, &totalMachinesCount)
-		fmt.Println(usedMachines)
+		totalMachinesCount = id
+		err = rows.Scan(&id, &usedMachines, &totalMachinesCount)
+		if err != nil {
+			panic(err)
+		}
+		if UpdatePersonRepository(id, repository) != 0 {
+			arrUsedMachines = append(arrUsedMachines, strconv.Itoa(id))
+		}
 		//fmt.Println(strings.Split(usedMachines, ","))
 		people = append(people, &Person{
 			Id:                 id,
-			UsedMachines:       []string{usedMachines},
-			TotalMachinesCount: totalMachinesCount,
+			UsedMachines:       arrUsedMachines,
+			TotalMachinesCount: id,
 		})
 	}
-
+	err = rows.Err() // get any error encountered ing iteration
+	if err != nil {
+		panic(err)
+	}
 	return people
 }
 
@@ -104,8 +135,9 @@ func (server *Server) Run() {
 		Addr:    ":" + server.config.Port,
 		Handler: server.Handler(),
 	}
-
-	httpServer.ListenAndServe()
+	if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		panic(err)
+	}
 }
 
 func (server *Server) findPeople(writer http.ResponseWriter, request *http.Request) {
