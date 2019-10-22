@@ -2,5 +2,3 @@ github.com/mattn/go-sqlite3 v1.6.0 h1:TDwTWbeII+88Qy55nWlof0DclgAtI4LqGujkYMzmQI
 github.com/mattn/go-sqlite3 v1.6.0/go.mod h1:FPy6KqzDD04eiIsT53CuJW3U88zkxoIYsOqkbpncsNc=
 go.uber.org/dig v1.3.0 h1:YRSeZeFfY/5zf0F0+9+Y1rEAZ4j7viDHQxuu29dgcNQ=
 go.uber.org/dig v1.3.0/go.mod h1:z+dSd2TP9Usi48jL8M3v63iSBVkiwtVyMKxMZYYauPg=
-golang.org/x/vgo v0.0.0-20180912184537-9d567625acf4 h1:ouUW0k6XvH360Tr2/HkzQWY7/aU+3QVkfWnrRNf2udQ=
-golang.org/x/vgo v0.0.0-20180912184537-9d567625acf4/go.mod h1:rPwukS3Aj8LZv1dK2rFNXSfYxdueYuvBJ7u3uL3f47I=
