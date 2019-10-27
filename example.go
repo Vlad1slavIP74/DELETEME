@@ -30,7 +30,8 @@ type Config struct {
 	Port         string
 }
 
-// NewConfig is
+// NewConfig is constructor
+// DatabasePath - path to our db
 func NewConfig() *Config {
 	return &Config{
 		Enabled:      true,
@@ -39,24 +40,19 @@ func NewConfig() *Config {
 	}
 }
 
-// Person is ...
-type Person struct {
-	Id                 int         `json:"id"`
-	UsedMachines       []MachineID `json:"usedMachines"`
-	TotalMachinesCount int         `json:"totalMachinesCount"`
+// LoadBalancer is structure which will be returned as a json
+type LoadBalancer struct {
+	Id                 int   `json:"id"`
+	UsedMachines       []int `json:"usedMachines"`
+	TotalMachinesCount int   `json:"totalMachinesCount"`
 }
 
-// MachineID is ...
-type MachineID struct {
-	MachineID int
-}
-
-// PersonRepository is ...
+// PersonRepository is our db
 type PersonRepository struct {
 	database *sql.DB
 }
 
-// Update is ...
+// Update is our machine
 func (repository *PersonRepository) Update(isWork string, id string) {
 	fmt.Println(isWork)
 	fmt.Println(id)
@@ -67,31 +63,32 @@ func (repository *PersonRepository) Update(isWork string, id string) {
 		panic(err.Error())
 	}
 	rows.Exec(isWork, id)
-	// defer repository.database.Close()
 }
 
-// FindAll is ..
-func (repository *PersonRepository) FindAll() []*Person {
+// FindAll is function that shows all load
+func (repository *PersonRepository) FindAll() []*LoadBalancer {
 	// select machine.id,usedMachines,totalMachinesCount  from machine  LEFT JOIN loadbalance  on loadbalance_id=loadbalance.id;
-	rows, _ := repository.database.Query(`select loadbalance.id,totalMachinesCount  from machine  LEFT JOIN loadbalance  on loadbalance_id=loadbalance.id where isWork=1;`)
+	rows, _ := repository.database.Query(`select loadbalance.id,totalMachinesCount  from machine  LEFT JOIN loadbalance  on loadbalance_id=loadbalance.id;`)
 	defer rows.Close()
-	people := []*Person{}
+	people := []*LoadBalancer{}
 	for rows.Next() {
-		machineIDs := []MachineID{}
-		machineId := MachineID{}
+		machineIDs := []int{}
+		// machineId := MachineID{}
 		var (
 			id int
 			// usedMachines       string
 			totalMachinesCount int
 		)
 		rows.Scan(&id /*&usedMachines,*/, &totalMachinesCount)
-		machineRows, _ := repository.database.Query(`select id from machine where loadbalance_id =` + strconv.Itoa(id) + `;`)
-		for machineRows.Next() {
-			machineRows.Scan(&id)
-			machineId.MachineID = id
-			machineIDs = append(machineIDs, machineId)
+		machineRows, _ := repository.database.Query(`select id from machine where loadbalance_id =` + strconv.Itoa(id) + ` AND isWork = 1;`)
+		if machineRows != nil {
+			for machineRows.Next() {
+				machineRows.Scan(&id)
+				// machineId.MachineID = id
+				machineIDs = append(machineIDs, id)
+			}
 		}
-		people = append(people, &Person{
+		people = append(people, &LoadBalancer{
 			Id:                 id,
 			UsedMachines:       machineIDs, //[]string{usedMachines},
 			TotalMachinesCount: totalMachinesCount,
@@ -113,13 +110,13 @@ type PersonService struct {
 }
 
 // FindAll is....
-func (service *PersonService) FindAll() []*Person {
+func (service *PersonService) FindAll() []*LoadBalancer {
 	if service.config.Enabled {
 
 		return service.repository.FindAll()
 	}
 
-	return []*Person{}
+	return []*LoadBalancer{}
 }
 
 // Update is...
@@ -145,7 +142,7 @@ type Server struct {
 func (server *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/people", server.findPeople)
+	mux.HandleFunc("/list", server.findBalancer)
 	mux.HandleFunc("/update", server.updateMachine)
 	return mux
 }
@@ -159,20 +156,30 @@ func (server *Server) Run() {
 	httpServer.ListenAndServe()
 }
 
-func (server *Server) findPeople(writer http.ResponseWriter, request *http.Request) {
-	people := server.personService.FindAll()
-	bytes, _ := json.Marshal(people)
+func (server *Server) findBalancer(writer http.ResponseWriter, request *http.Request) {
+	if request.Method == http.MethodGet {
+		people := server.personService.FindAll()
+		bytes, _ := json.Marshal(people)
 
-	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusOK)
-	writer.Write(bytes)
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusOK)
+		writer.Write(bytes)
+	} else {
+		fmt.Println("Method should be GET")
+	}
+
 }
 func (server *Server) updateMachine(writer http.ResponseWriter, request *http.Request) {
-	fmt.Println(request.FormValue("id"))
-	isWork := request.FormValue("isWork")
-	id := request.FormValue("id")
-	server.personService.Update(isWork, id)
-	writer.WriteHeader(http.StatusOK)
+	if request.Method == http.MethodPut {
+		fmt.Println(request.FormValue("id"))
+		isWork := request.FormValue("isWork")
+		id := request.FormValue("id")
+		server.personService.Update(isWork, id)
+		writer.WriteHeader(http.StatusOK)
+	} else {
+		fmt.Println("Method should be PUT")
+	}
+
 }
 
 // NewServer is...
@@ -200,33 +207,13 @@ func BuildContainer() *dig.Container {
 }
 
 func main() {
+	fmt.Println("Server has been started at the port 8000...")
 	container := BuildContainer()
 
 	err := container.Invoke(func(server *Server) {
 		server.Run()
 	})
-
 	if err != nil {
 		panic(err)
 	}
 }
-
-// The manual way
-//
-// func main() {
-// 	config := NewConfig()
-//
-// 	db, err := ConnectDatabase(config)
-//
-// 	if err != nil {
-// 		panic(err)
-// 	}
-//
-// 	personRepository := NewPersonRepository(db)
-//
-// 	personService := NewPersonService(config, personRepository)
-//
-// 	server := NewServer(config, personService)
-//
-// 	server.Run()
-// }
