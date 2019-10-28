@@ -11,18 +11,6 @@ import (
 	"go.uber.org/dig"
 )
 
-func dbConn() (db *sql.DB) {
-	dbDriver := "mysql"
-	dbUser := "vlad"
-	dbPass := "5"
-	dbName := "lab2"
-	db, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@/"+dbName)
-	if err != nil {
-		panic(err.Error())
-	}
-	return db
-}
-
 // Config is
 type Config struct {
 	Enabled      bool
