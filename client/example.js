@@ -19,7 +19,7 @@ client.list()
     })
 
 // Update machine
-client.put({isWork: 1, id: 2})
+client.put({isWork: 0, id: 2})
     .then(res => {
         console.log('Update')
         console.log(`Response: ${res}`)
