@@ -23,7 +23,7 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		Enabled:      true,
-		DatabasePath: "./example.db",
+		DatabasePath: "./db/example.db",
 		Port:         "8000",
 	}
 }
@@ -53,16 +53,13 @@ func (repository *PersonRepository) Update(isWork string, id string) {
 
 // FindAll is function that shows all load
 func (repository *PersonRepository) FindAll() []*LoadBalancer {
-	// select machine.id,usedMachines,totalMachinesCount  from machine  LEFT JOIN loadbalance  on loadbalance_id=loadbalance.id;
 	rows, _ := repository.database.Query(`select loadbalance.id,totalMachinesCount  from machine  LEFT JOIN loadbalance  on loadbalance_id=loadbalance.id;`)
 	defer rows.Close()
 	people := []*LoadBalancer{}
 	for rows.Next() {
 		machineIDs := []int{}
-		// machineId := MachineID{}
 		var (
-			id int
-			// usedMachines       string
+			id                 int
 			totalMachinesCount int
 		)
 		rows.Scan(&id /*&usedMachines,*/, &totalMachinesCount)

@@ -8,8 +8,8 @@ go get -u golang.org/x/vgo
 # Run the server
 
 ```
-go run example.go
-```
+go run ./cmd/server
+``` from directory server
 
 # Make a request
 
