@@ -42,8 +42,6 @@ type PersonRepository struct {
 
 // Update is our machine
 func (repository *PersonRepository) Update(isWork string, id string) {
-	fmt.Println(isWork)
-	fmt.Println(id)
 	sqlCall := (`update "machine" set isWork=? where id = ?;`)
 	rows, err := repository.database.Prepare(sqlCall)
 	defer rows.Close()
@@ -159,9 +157,12 @@ func (server *Server) findBalancer(writer http.ResponseWriter, request *http.Req
 }
 func (server *Server) updateMachine(writer http.ResponseWriter, request *http.Request) {
 	if request.Method == http.MethodPut {
-		fmt.Println(request.FormValue("id"))
 		isWork := request.FormValue("isWork")
 		id := request.FormValue("id")
+		fmt.Println("ID")
+		fmt.Println(id)
+		fmt.Println("ISWORK")
+		fmt.Println(isWork)
 		server.personService.Update(isWork, id)
 		writer.WriteHeader(http.StatusOK)
 	} else {
